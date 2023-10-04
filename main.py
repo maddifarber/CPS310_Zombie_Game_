@@ -6,7 +6,7 @@ import numpy as np
 ###########################################
 MAX_ITER = 1000
 
-
+agent_cnt_seed = 100
 # Probability of Agents
 H_PROB = 0.5
 D_PROB = 0.2
@@ -50,23 +50,17 @@ class ZombieGameSim:
         while True:
             if self.m_current_moment >= MAX_ITER:
                 break
-            for agent in self.m_l_all_agents:
-                agent.update()
-            self.m_current_moment += 1
-
-    game_init = AbsAgent.__init__(init_energy, ref_sim)
-
-    # while (num_humans and num_doctor) or num_zombie != 0:
-    #     select_neighbors = AbsAgent._select_neighbors()
-    #     z_bite = Zombie.bite()
-    #     if bite_success == 0:
-    #         human_change = Human.life_decay()
-    #         human.bitten()
-    #         doctor_change = Doctor.life_decay()
-    #         doctor.bitten()
-    #
-    #     else:
-    #         select_neighbors = AbsAgent._select_neighbors()
+            while m_l_all_agents > 0:
+                Human_init = Human()
+                Doctor_init = Doctor()
+                Zombie_init = Zombie()
+                Human_init()
+                Doctor_init()
+                Zombie_init()
+                for agent in self.m_l_all_agents:
+                    agent.update()
+                self.m_current_moment += 1
+        
 
 
     def get_all_agents(self):
@@ -85,10 +79,6 @@ class ZombieGameSim:
         print("The number of Dead Doctors are:",)
         print("The number of Alive Zombies are:", )
         print("The number of Dead Zombies are:", )
-
-
-
-
 
 
 class AbsAgent:
