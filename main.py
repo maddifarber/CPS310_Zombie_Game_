@@ -41,23 +41,27 @@ class ZombieGameSim:
     def __init__(self, agent_cnt_seed):
         self.m_l_all_agents = []
         nd_agent_cnt = np.random.multinomial(agent_cnt_seed, pvals=[H_PROB, D_PROB,Z_PROB])
-        self.m_l_all_agents += [Human(H_ENERGY, self) for i in range(nd_agent_cnt[0])]
-        self.m_l_all_agents += [Doctor(D_ENERGY, self) for i in range(nd_agent_cnt[0])]
-        self.m_l_all_agents += [Zombie(Z_ENERGY, self) for i in range(nd_agent_cnt[0])]
-
+        num_human = [Human(H_ENERGY, self) for i in range(nd_agent_cnt[0])]
+        num_doctor = [Doctor(D_ENERGY, self) for i in range(nd_agent_cnt[0])]
+        num_zombie = [Zombie(Z_ENERGY, self) for i in range(nd_agent_cnt[0])]
+		self.m_l_all_agents = num_human + num_doctor + num_zombie
+        
+        
     def start(self):
         self.m_current_moment = 0
         while True:
             if self.m_current_moment >= MAX_ITER:
                 break
             while m_l_all_agents > 0:
-                Human_init = Human()
-                Doctor_init = Doctor()
-                Zombie_init = Zombie()
-                Human_init()
-                Doctor_init()
-                Zombie_init()
+                #Human_init = Human()
+                #Doctor_init = Doctor()
+                #Zombie_init = Zombie()
+                #Human_init()
+                #Doctor_init()
+                #Zombie_init()
                 for agent in self.m_l_all_agents:
+                    get_bitten = Zombie(bite)
+                    get_bitten()
                     agent.update()
                 self.m_current_moment += 1
         
@@ -287,10 +291,8 @@ class Zombie(AbsAgent):
         Compute the life decay amount for the current state.
         :return: (int) The life decay amount
         """
-        #  TODO
-        #    Make it more fun.
-        return 1
-
+        life_decay_amt = 5
+        return life_decay_amt 
         # TODO
             # Double-check the invocation of Zombie._get_life decay amy when calling life_decay from AbsAgent
 
@@ -299,8 +301,8 @@ class Zombie(AbsAgent):
         Decay Zombie's energy over time.
         :return: None.
         """
-       # self.m_energy -= self._get__life__decay__amount()
-      #  super().check_death()
+        self.m_energy -= self._get__life__decay__amount()
+        super().check_death()
 
     def bite(self):
         l_neigh = super()._select_neighbors()
