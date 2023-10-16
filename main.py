@@ -1,5 +1,13 @@
 import logging
+import os
+import sys
+import pathlib
+import time
+from datetime import datetime
+import json
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 
 ###########################################
 #   Global Definitions
@@ -52,19 +60,23 @@ class ZombieGameSim:
         while True:
             if self.m_current_moment >= MAX_ITER:
                 break
-            while m_l_all_agents > 0:
-                #Human_init = Human()
-                #Doctor_init = Doctor()
-                #Zombie_init = Zombie()
-                #Human_init()
-                #Doctor_init()
-                #Zombie_init()
-                for agent in self.m_l_all_agents:
-                    get_bitten = Zombie(bite)
-                    get_bitten()
-                    agent.update()
-                self.m_current_moment += 1
+            for human in self.m_l_humans:
+                human.update()
+                human.profile()
+            for doctor in self.m_l_doctors:
+                doctor.update()
+                doctor.profile()
+            for zombie in self.m_l_zombies:
+                zombie.update()
+                zombie.profile()
+            self.m_cur_moment += 1
+            if self.m_cur_moment % 100 == 0:
+                self.m_logger.info('Elapse: %s' % (time.time() - start_time))
         
+	self.__output_ts_profile()
+	with open(RUN_ID_FILE, 'w') as out_fd:
+            out_fd.write(RUN_ID)
+        self.m_logger.info('Game Over. Overall Elapse: %s' % (time.time() - start_time))
 
 
     def get_all_agents(self):
