@@ -52,7 +52,7 @@ class ZombieGameSim:
         num_human = [Human(H_ENERGY, self) for i in range(nd_agent_cnt[0])]
         num_doctor = [Doctor(D_ENERGY, self) for i in range(nd_agent_cnt[0])]
         num_zombie = [Zombie(Z_ENERGY, self) for i in range(nd_agent_cnt[0])]
-		self.m_l_all_agents = num_human + num_doctor + num_zombie
+	self.m_l_all_agents = num_human + num_doctor + num_zombie
         
         
     def start(self):
