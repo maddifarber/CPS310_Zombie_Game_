@@ -1,340 +1,167 @@
-import logging
-import os
-import sys
-import pathlib
-import time
-from datetime import datetime
-import json
-import numpy as np
+import random
 import pandas as pd
 import matplotlib.pyplot as plt
 
-###########################################
-#   Global Definitions
-###########################################
-MAX_ITER = 1000
+# Define agent states
+class AgentState:
+    ALIVE = "Alive"
+    INFECTED = "Infected"
+    DEAD = "Dead"
 
-agent_cnt_seed = 100
-# Probability of Agents
-H_PROB = 0.5
-D_PROB = 0.2
-Z_PROB = 0.3
+# Define agent types
+class AgentType:
+    HUMAN = "Human"
+    ZOMBIE = "Zombie"
+    DOCTOR = "Doctor"
+    DEAD = "Dead"
 
-# np.random.multinomial
-H_ENERGY = 100
-D_ENERGY = 100
-Z_ENERGY = 100
+# Define the Agent class with inheritance
+class Agent:
+    id_counter = 0
 
-#  AGENT STATES
-ALIVE = 0
-INFECTED = 1
-DEAD = 2
+    def __init__(self, agent_type, energy_range=(0, 100)):
+        self.id = Agent.id_counter
+        Agent.id_counter += 1
+        self.agent_type = agent_type
+        self.energy = random.randint(energy_range[0], energy_range[1])
+        self.state = AgentState.ALIVE
+        self.neighbors = []
 
-#ZOMBIE
-BITE_PROB = 0.7
-
-#DOCTOR
-BITE_EFF = 10
-
-############################################
-#   Class Definitions
-############################################
-class ZombieGameSim:
-    # The full list of agents
-    m_l_all_agents = None
-    # The current moment
-    m_current_moment = None
-
-
-    def __init__(self, agent_cnt_seed):
-        self.m_l_all_agents = []
-        nd_agent_cnt = np.random.multinomial(agent_cnt_seed, pvals=[H_PROB, D_PROB,Z_PROB])
-        num_human = [Human(H_ENERGY, self) for i in range(nd_agent_cnt[0])]
-        num_doctor = [Doctor(D_ENERGY, self) for i in range(nd_agent_cnt[0])]
-        num_zombie = [Zombie(Z_ENERGY, self) for i in range(nd_agent_cnt[0])]
-	self.m_l_all_agents = num_human + num_doctor + num_zombie
-        
-        
-    def start(self):
-        self.m_current_moment = 0
-        while True:
-            if self.m_current_moment >= MAX_ITER:
-                break
-            for human in self.m_l_humans:
-                human.update()
-                human.profile()
-            for doctor in self.m_l_doctors:
-                doctor.update()
-                doctor.profile()
-            for zombie in self.m_l_zombies:
-                zombie.update()
-                zombie.profile()
-            self.m_cur_moment += 1
-            if self.m_cur_moment % 100 == 0:
-                self.m_logger.info('Elapse: %s' % (time.time() - start_time))
-        
-	self.__output_ts_profile()
-	with open(RUN_ID_FILE, 'w') as out_fd:
-            out_fd.write(RUN_ID)
-        self.m_logger.info('Game Over. Overall Elapse: %s' % (time.time() - start_time))
-
-
-    def get_all_agents(self):
-        return self.m_l_all_agents
-
-    def get_current_moment(self):
-        return self.m_current_moment
-
-
-    def ts_statement(self):
-        print("The number of Alive Humans are:", )
-        print("The number of Infected Humans are:", )
-        print("The number of Dead Humans are:", )
-        print("The number of Alive Doctors are:", )
-        print("The number of infected Doctors are:", )
-        print("The number of Dead Doctors are:",)
-        print("The number of Alive Zombies are:", )
-        print("The number of Dead Zombies are:", )
-
-
-class AbsAgent:
-
-    #Member Variables
-    m_state = None
-
-    m_full_energy = None
-    #Agent Energy
-    m_energy = None
-    # The number of neighbors in previous iteration
-    m_num_neigh_prev = None
-    # The full list of agents
-    m_l_all_agents = None
-    #The reference of ZombieGameSim
-    m_ref_sim = None
-
-    def __init__(self, init_energy, ref_sim):
-        """
-        Constructor
-        :param init_energy: (int) >0 Initial energy for this agent
-        """
-        #TODO
-        #  If anything needs to be initialized
-        self.m_state = ALIVE
-        if init_energy <= 0:
-            logging.error('[AbsAgent:__init__] `init_energy` needs to be a positive integer')
-            return
-        m.full_energy = 100
-        self.m_energy = init_energy
-        if ref_sim is None or not isinstance('[AbsAgent:__init__] `ref_sim` needs to be in `ZombieGameSim`.'):
-            self.m_ref_sim = ref_sim
-            self.m_energy = init_energy
-
-    def get_state(self):
-        return m_state
-
-    def update_state(self, new_state):
-        self.m_state = new_state
-
-
-    def _get_life_decay_amount(self):
-        life_decay_amount = 5
-        return life_decay_amount
-
-    def life_decay(self):
-        """
-               Decay Agent's energy over time.
-               :return: None.
-               """
-        self.m_energy -= self._get__life__decay__amount()
-        super().check_death()
-
-    def life_increases(self):
-        self.m_energy += 4
-        return self.m_energy
-
-
-    #Member Methods
-    def _check_death(self):
-        """
-        Check if this agent is about to die.
-        :return: None.
-        """
-        if self.m_energy is not None and self.m_energy <= 0:
-            self.m_state = DEAD
-
-
-    def __get_num_neigh(self):
-            """
-            update the desired num of neighbors for this agent
-            :return: (int) the num of neighbors
-            """
-            # TODO
-            #   Make it vary for each iteration
-            return 5
-
-    def _select_neighbors(self):
-        """
-        Randomly select a specific number on agents as the neighbors.
-        :param num_neigh: (int) >0 The number on desired neighbors
-        :param l_all_agents: (list of agent instances) A full list of agents in the game.
-        :return: (List of agent instances) The current neighbors.
-        """
-        num_neigh = self.__get
-        l_all_agents = self.m_ref_sim.get_all_agents()
-        l_neigh_idx = np.random.choice(list(range(len(l_all_agents))), size=m_num_neigh)
-        l_neigh = [l_all_agents[idx] for idx in range(len(l_all_agents)) if idx in l_neigh_idx]
-        return l_neigh
+    def __str__(self):
+        return f"{self.agent_type} (ID: {self.id}, Energy: {self.energy}, State: {self.state})"
 
     def update(self):
-        '''
-        Update the state as well as the energy, if necessary
-        :param self:
-        :return: None
-        '''
-        def bite_success(self):
-            if bite_success == 0:
-                Human.bitten()
-                neigh.change_state(INFECTED)
-                neigh.life_decay()
+        pass
 
-        def new_state(self):
-            if self.m_energy == 100 :
-               change_state = "ALIVE"
-            return
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-###################################
-    # HUMAN CLASS
-###################################
-
-class Human(AbsAgent):
-
-    m_bite_start = None
-
-    def get_life_decay_amount(self):
-        life_decay_amt = 5
-        return life_decay_amt
-
-    def life_decay(self):
-        self.m_energy -= self._get_life_decay_amount()
-        self._check_death()
-
-    def bitten(self):
-        '''
-        Record the moment of the bite
-        :return: None
-        '''
-        self.m_bite_start = self.m_ref_sim.get_current_moment()
-        print("A human has been bitten!")
+# Define subclasses for each agent type
+class Human(Agent):
+    def __init__(self, energy_range=(0, 100)):
+        super().__init__(AgentType.HUMAN, energy_range)
 
     def update(self):
-        if self.get_state() == INFECTED:
-            cur_moment = self.m_ref_sim.get_current_moment()
-            bite_len = cur_momeent - self.m_bite_start
-            if bite_len > BITE_EFF and self.get_state() != DEAD:
-                self.change_state(ALIVE)
-                self.life_increase()
-            else:
-                self.life_decay()
-        elif self.get_state() == INFECTED:
-            self.life_decay()
+        self.energy -= 5
 
-
-
-####################################
-    # DOCTOR CLASS
-####################################
-
-class Doctor(Human):
-    m_bite_start = None
-
-    def bitten(self):
-        '''
-        Record the moment of the bite
-        :return: None
-        '''
-        self.m_bite_start = self.m_ref_sim.get_current_moment()
-        print("A human has been bitten!")
+class Zombie(Agent):
+    def __init__(self, energy_range=(0, 100)):
+        super().__init__(AgentType.ZOMBIE, energy_range)
 
     def update(self):
-        if self.get_state() == INFECTED:
-            cur_moment = self.m_ref_sim.get_current_moment()
-            bite_len = cur_momeent - self.m_bite_start
-            if bite_len > BITE_EFF and self.get_state() != DEAD:
-                self.change_state(ALIVE)
-                self.life_increase()
-            else:
-                self.life_decay()
-        elif self.get_state() == ALIVE:
-            self.life_increase()
+        if self.state == AgentState.ALIVE:
+            for neighbor in self.neighbors:
+                if neighbor.agent_type == AgentType.HUMAN and neighbor.state != AgentState.INFECTED:
+                    if random.random() < 0.3:
+                        neighbor.state = AgentState.INFECTED
+                        neighbor.energy -= 20
+                        self.energy += 10
+                        break
 
+class Doctor(Agent):
+    def __init__(self, energy_range=(0, 100)):
+        super().__init__(AgentType.DOCTOR, energy_range)
 
+    def update(self):
+        if self.state == AgentState.INFECTED:
+            if random.random() < 0.4:
+                self.state = AgentState.ALIVE
+                self.energy -= 30
 
-    def cure(self):
-        l_neigh = super()._select_neighbors()
-        for neigh in l_neigh:
-            if not isinstance(neigh, Human):
-                continue
-            if neigh.get_state() == INFECTED:
-                neigh.change_state(ALIVE)
-                break
+# Create a simulation environment
+class ZombieGame:
+    def __init__(self, num_agents, num_steps, energy_range=(0, 100)):
+        self.agents = []
+        self.num_agents = num_agents
+        self.num_steps = num_steps
+        self.agent_statuses = []  # To store statuses over time
 
-
-#####################################
-    # ZOMBIE CLASS
-#####################################
-
-class Zombie(AbsAgent):
-
-    def _get__life__decay__amount(self):
-        """
-        Compute the life decay amount for the current state.
-        :return: (int) The life decay amount
-        """
-        life_decay_amt = 5
-        return life_decay_amt 
+        # Initialize population_data dictionary with keys for each agent type
         # TODO
-            # Double-check the invocation of Zombie._get_life decay amy when calling life_decay from AbsAgent
+        #   This is ALIVE count.
+        self.population_data = {
+            AgentType.HUMAN: [],
+            AgentType.ZOMBIE: [],
+            AgentType.DOCTOR: [],
+            AgentType.DEAD: []
+        }
 
-    def life_decay(self):
-        """
-        Decay Zombie's energy over time.
-        :return: None.
-        """
-        self.m_energy -= self._get__life__decay__amount()
-        super().check_death()
+        for _ in range(num_agents):
+            agent_type = random.choice([AgentType.HUMAN, AgentType.ZOMBIE, AgentType.DOCTOR])
+            agent = None
+            if agent_type == AgentType.HUMAN:
+                agent = Human(energy_range)
+            elif agent_type == AgentType.ZOMBIE:
+                agent = Zombie(energy_range)
+            elif agent_type == AgentType.DOCTOR:
+                agent = Doctor(energy_range)
+            self.agents.append(agent)
 
-    def bite(self):
-        l_neigh = super()._select_neighbors()
-        for neigh in l_neigh:
-            if not isinstance(neigh, Human):
-                continue
-            if neigh.get_state() != ALIVE:
-                continue
-            bite_odd = np.random.binomial(n=1, p=BITE_PROB)
-            if bite_success == 0:
-                continue
-            neigh.change_state(INFECTED)
-            neigh.life_decay()
-            self.life_increases()
-            break
+    def run_simulation(self):
+        for step in range(self.num_steps):
+            self.agent_statuses.append([str(agent) for agent in self.agents])
+
+            # TODO
+            #   ALIVE counts for each iteration
+            agent_counts = {
+                AgentType.HUMAN: 0,
+                AgentType.ZOMBIE: 0,
+                AgentType.DOCTOR: 0,
+                AgentType.DEAD: 0
+            }
+
+            for agent in self.agents:
+                # TODO: Inside this loop, we update ALIVE counts.
+                agent.update()
+                agent.neighbors = random.sample(self.agents, min(5, self.num_agents))  # Random neighbors
+
+                if agent.state == AgentState.DEAD:
+                    agent_counts[AgentType.DEAD] += 1
+                    continue
+                if agent.state == AgentType.HUMAN:
+                    self.population_data[AgentType.HUMAN].append(1)
+                elif agent.state == AgentType.ZOMBIE:
+                    self.population_data[AgentType.ZOMBIE].append(1)
+                elif agent.state == AgentType.DOCTOR:
+                    self.population_data[AgentType.DOCTOR].append(1)
+
+            # Correctly access the corresponding list based on agent_type
+            # Summarize ALIVE counts.
+            self.population_data[AgentType.HUMAN].append(agent_counts[AgentType.HUMAN])
+            self.population_data[AgentType.DOCTOR].append(agent_counts[AgentType.DOCTOR])
+            self.population_data[AgentType.ZOMBIE].append(agent_counts[AgentType.ZOMBIE])
+
+        self.save_simulation_data()
+        self.plot_simulation_results()
+
+    def save_simulation_data(self):
+        # Create an empty list to store step-wise data
+        step_data = []
+
+        for step in range(self.num_steps):
+            # Each step contains a list of agent statuses
+            step_data.append([f"Step_{step}"] + self.agent_statuses[step])
+
+        # Create a DataFrame from the list of step data
+        status_df = pd.DataFrame(step_data,
+                                 columns=["Step"] + [f"Agent_{i}" for i in range(len(self.agent_statuses[0]))])
+
+        # Save the DataFrame to a CSV file
+        status_df.to_csv("agent_statuses.csv", index=False)
+
+    def plot_simulation_results(self):
+        plt.figure(figsize=(12, 6))
+        for agent_type in AgentType.__dict__.values():
+            if agent_type in self.population_data and self.population_data[agent_type]:
+                plt.plot(range(self.num_steps), self.population_data[agent_type], label=agent_type)
+        plt.xlabel("Time Step")
+        plt.ylabel("Population Count")
+        plt.legend()
+        plt.savefig("population_plot.png")
+        plt.show()
 
 
-#############################
-# GAME FUNCTION
-#############################
-if __name__ == '__main__':
-        game_ins = ZombieGameSim()
-        game_ins.start()
+if __name__ == "__main__":
+    num_agents_param = 100
+    num_steps_param = 50
+    game = ZombieGame(num_agents_param, num_steps_param)
+    game.run_simulation()
+
+
