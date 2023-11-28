@@ -36,10 +36,7 @@ class Agent:
     def update(self):
         # Check if the agent is dead based on energy level
         if self.energy <= 0 and self.state != AgentState.DEAD:
-            print(f"Agent {self.id} is dead. Energy: {self.energy}")
             self.state = AgentState.DEAD
-        else:
-            print(f"Agent {self.id} is alive. Energy: {self.energy}, State: {self.state}")
 
 
 # Define subclasses for each agent type
