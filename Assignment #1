@@ -37,7 +37,7 @@ class Agent:
         # Check if the agent is dead based on energy level
         if self.energy <= 0 and self.state != AgentState.DEAD:
             self.state = AgentState.DEAD
-
+        
 
 # Define subclasses for each agent type
 class Human(Agent):
@@ -55,6 +55,8 @@ class Zombie(Agent):
         super().__init__(AgentType.ZOMBIE, energy_range)
 
     def update(self):
+        if self.energy <= 0 and self.state != AgentState.DEAD:
+            self.state = AgentState.DEAD
         for neighbor in self.neighbors:
             if neighbor.agent_type == AgentType.HUMAN and neighbor.state == AgentState.ALIVE:
                 if random.random() < 0.3:
@@ -77,6 +79,8 @@ class Doctor(Agent):
             if random.random() < 0.4:
                 self.state = AgentState.ALIVE
                 self.energy -= 30
+        if self.energy <= 0 and self.state != AgentState.DEAD:
+            self.state = AgentState.DEAD
 
 
 # Create a simulation environment
@@ -124,7 +128,6 @@ class ZombieGame:
         for step in range(self.num_steps):
             for agent in self.agents:
                 agent.update()
-
 
             self.agents = [agent for agent in self.agents if agent.state != AgentState.DEAD]
 
