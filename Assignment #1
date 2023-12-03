@@ -172,7 +172,6 @@ class ZombieGame:
                 elif agent.state == AgentType.DOCTOR:
                     agent_counts_after[AgentType.DOCTOR] += 1
 
-            # Summarize counts for each state after agents are updated
             self.population_data[AgentType.HUMAN].append(agent_counts_after[AgentType.HUMAN])
             self.population_data[AgentType.DOCTOR].append(agent_counts_after[AgentType.DOCTOR])
             self.population_data[AgentType.ZOMBIE].append(agent_counts_after[AgentType.ZOMBIE])
