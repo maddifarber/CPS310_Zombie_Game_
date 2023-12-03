@@ -37,7 +37,7 @@ class Agent:
         # Check if the agent is dead based on energy level
         if self.energy <= 0 and self.state != AgentState.DEAD:
             self.state = AgentState.DEAD
-        
+
 
 # Define subclasses for each agent type
 class Human(Agent):
@@ -150,6 +150,8 @@ class ZombieGame:
                 elif agent.state == AgentType.DOCTOR:
                     agent_counts_before[AgentType.DOCTOR] += 1
 
+            self.agents = [agent for agent in self.agents if agent.state != AgentState.DEAD]
+
             for agent in self.agents:
                 agent.update()
 
@@ -213,7 +215,8 @@ class ZombieGame:
 
 
 if __name__ == "__main__":
-    num_agents_param = 100
-    num_steps_param = 5
+    num_agents_param = 1000
+    num_steps_param = 3
     game = ZombieGame(num_agents_param, num_steps_param)
     game.run_simulation()
+
