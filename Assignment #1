@@ -133,6 +133,7 @@ class ZombieGame:
 
             self.agent_statuses.append([str(agent) for agent in self.agents])
 
+            # Agent states before
             agent_counts_before = {
                 AgentType.HUMAN: 0,
                 AgentType.ZOMBIE: 0,
@@ -155,6 +156,7 @@ class ZombieGame:
             for agent in self.agents:
                 agent.update()
 
+            # Agent states after updating
             agent_counts_after = {
                 AgentType.HUMAN: 0,
                 AgentType.ZOMBIE: 0,
@@ -172,6 +174,7 @@ class ZombieGame:
                 elif agent.state == AgentType.DOCTOR:
                     agent_counts_after[AgentType.DOCTOR] += 1
 
+            # Add counts to each group
             self.population_data[AgentType.HUMAN].append(agent_counts_after[AgentType.HUMAN])
             self.population_data[AgentType.DOCTOR].append(agent_counts_after[AgentType.DOCTOR])
             self.population_data[AgentType.ZOMBIE].append(agent_counts_after[AgentType.ZOMBIE])
