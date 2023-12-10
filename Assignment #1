@@ -1,6 +1,7 @@
 import random
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 # Define agent states
@@ -27,16 +28,36 @@ class Agent:
         Agent.id_counter += 1
         self.agent_type = agent_type
         self.energy = random.randint(energy_range[0], energy_range[1])
-        self.state = AgentState.ALIVE
+        self.state = AgentState.ALIVE  # Start as ALIVE by default
         self.neighbors = []
 
     def __str__(self):
         return f"{self.agent_type} (ID: {self.id}, Energy: {self.energy}, State: {self.state})"
 
-    def update(self):
-        # Check if the agent is dead based on energy level
-        if self.energy <= 0 and self.state != AgentState.DEAD:
-            self.state = AgentState.DEAD
+    def _get_num_neig(self):
+        return 5
+
+    def update(self, m_ref_sim):
+        if self.state == AgentState.DEAD: 
+            return
+
+        if self.agent_type is None or not isinstance(self.agent_type, str):
+            return
+
+        num_neig = self._get_num_neig()
+        l_agents = []
+
+        if self.agent_type == AgentType.HUMAN:
+            l_agents += m_ref_sim.get_all_humans()
+        if self.agent_type == AgentType.DOCTOR:
+            l_agents += m_ref_sim.get_all_doctors()
+        if self.agent_type == AgentType.ZOMBIE:
+            l_agents += m_ref_sim.get_all_zombies()
+
+        l_neig_idx = np.random.choice(list(range(len(l_agents))), size=num_neig)
+        l_neig = [l_agents[idx] for idx in range(len(l_agents)) if idx in l_neig_idx]
+        np.random.shuffle(l_neig)
+        self.neighbors = l_neig
 
 
 # Define subclasses for each agent type
@@ -44,47 +65,66 @@ class Human(Agent):
     def __init__(self, energy_range=(90, 100)):
         super().__init__(AgentType.HUMAN, energy_range)
 
-###################
-# HUMAN ONLY DIES, NEED A BITTEN CLASS
-    def update(self):
-        self.energy -= 2
+    def update(self, all_agents):
         if self.energy <= 0 and self.state != AgentState.DEAD:
             self.state = AgentState.DEAD
-###################
+
+    def bitten(self, zombie):
+        if self.state == AgentState.ALIVE:
+            self.state = AgentState.INFECTED
+            self.energy -= 5
 
 
 class Zombie(Agent):
     def __init__(self, energy_range=(0, 100)):
         super().__init__(AgentType.ZOMBIE, energy_range)
-    
-    ##############
-    # AGENTS ARE NEVER BEING CALLED, HAVE TO CALL THEM/CREATE A CALL CLASS
-    def update(self):
+        self.m_ref_sim = None
+
+    def update(self, m_ref_sim):
+        self.m_ref_sim = m_ref_sim 
+
         if self.energy <= 0 and self.state != AgentState.DEAD:
             self.state = AgentState.DEAD
-        for neighbor in self.neighbors:
-            if neighbor.agent_type == AgentType.HUMAN and neighbor.state == AgentState.ALIVE:
-                if random.random() < 0.3:
-                    neighbor.state = AgentState.INFECTED
-                    neighbor.energy -= 20
-                    self.energy += 10
+        elif self.state == AgentState.ALIVE:
+            neighbors = self._select_neighbors({AgentType.HUMAN, AgentType.DOCTOR})
+            for neighbor in neighbors:
+                if neighbor.agent_type == AgentType.HUMAN and neighbor.state == AgentState.ALIVE:
+                    if random.random() < 0.3:
+                        neighbor.state = AgentState.INFECTED
+                        neighbor.energy -= 20
+                        self.energy += 10
 
-                    if neighbor.energy <= 0:
-                        neighbor.state = AgentState.DEAD
-                        self.state = AgentState.DEAD
-                    break
-    ##################
+                        if neighbor.energy <= 0:
+                            neighbor.state = AgentState.DEAD
+                            self.state = AgentState.DEAD
+                        break
+
+    def _select_neighbors(self, agent_types):
+        all_agents = [agent for agent in self.m_ref_sim.all_agents if agent.state == AgentState.ALIVE]
+        num_neig = self._get_num_neig()
+        l_neig_idx = np.random.choice(list(range(len(all_agents))), size=num_neig)
+        l_neig = [all_agents[idx] for idx in l_neig_idx]
+        np.random.shuffle(l_neig)
+        selected_neighbors = [neighbor for neighbor in l_neig if neighbor.agent_type in agent_types]
+        return selected_neighbors
+
 
 class Doctor(Agent):
     def __init__(self, energy_range=(0, 100)):
         super().__init__(AgentType.DOCTOR, energy_range)
 
-    def update(self):
+    def update(self, m_ref_sim):
         if self.state == AgentState.INFECTED:
             if random.random() < 0.4:
                 self.state = AgentState.ALIVE
                 self.energy -= 30
-        if self.energy <= 0 and self.state != AgentState.DEAD:
+        elif self.state == AgentState.ALIVE:
+            infected_neighbors = [neighbor for neighbor in m_ref_sim.all_agents if neighbor.agent_type == AgentType.HUMAN and neighbor.state == AgentState.INFECTED]
+            for infected_neighbor in infected_neighbors:
+                if random.random() < 0.9:  
+                    infected_neighbor.state = AgentState.ALIVE
+                    self.energy -= 5
+        elif self.energy <= 0 and self.state != AgentState.DEAD:
             self.state = AgentState.DEAD
 
 
@@ -93,13 +133,12 @@ class ZombieGame:
 
     def __init__(self, num_agents, num_steps, energy_range=(0, 100)):
         self.agents = []
+        self.all_agents = []
         self.num_agents = num_agents
         self.num_steps = num_steps
-        self.agent_statuses = []  # To store statuses over time
+        self.agent_statuses = []
+        self.m_ref_sim = None
 
-        # Initialize population_data dictionary with keys for each agent type
-        # TODO
-        #   This is ALIVE count.
         self.population_data = {
             AgentType.HUMAN: [],
             AgentType.ZOMBIE: [],
@@ -124,21 +163,27 @@ class ZombieGame:
             elif agent_type == AgentType.DOCTOR:
                 agent = Doctor(energy_range)
             self.agents.append(agent)
+            self.all_agents.append(agent)
             agent_counts[agent_type] += 1
 
         for agent_type in agent_counts:
             self.population_data[agent_type].append(agent_counts[agent_type])
 
+    def _select_neighbors(self, agent_types):
+        all_agents = [agent for agent in self.agents if agent.state == AgentState.ALIVE]
+        selected_neighbors = [neighbor for neighbor in all_agents if neighbor.agent_type in agent_types]
+
+        return selected_neighbors
+
     def run_simulation(self):
         for step in range(self.num_steps):
             for agent in self.agents:
-                agent.update()
+                agent.update(self)
 
             self.agents = [agent for agent in self.agents if agent.state != AgentState.DEAD]
 
             self.agent_statuses.append([str(agent) for agent in self.agents])
 
-            # Agent states before
             agent_counts_before = {
                 AgentType.HUMAN: 0,
                 AgentType.ZOMBIE: 0,
@@ -146,7 +191,7 @@ class ZombieGame:
                 AgentType.DEAD: 0
             }
 
-            for agent in self.agents:
+            for agent in self.all_agents:
                 if agent.state == AgentState.DEAD:
                     agent_counts_before[AgentType.DEAD] += 1
                 elif agent.state == AgentType.HUMAN:
@@ -158,7 +203,6 @@ class ZombieGame:
 
             self.agents = [agent for agent in self.agents if agent.state != AgentState.DEAD]
 
-            # Add counts to each group
             self.population_data[AgentType.HUMAN].append(agent_counts_before[AgentType.HUMAN])
             self.population_data[AgentType.DOCTOR].append(agent_counts_before[AgentType.DOCTOR])
             self.population_data[AgentType.ZOMBIE].append(agent_counts_before[AgentType.ZOMBIE])
@@ -204,5 +248,6 @@ if __name__ == "__main__":
     num_agents_param = 1000
     num_steps_param = 3
     game = ZombieGame(num_agents_param, num_steps_param)
+    game.m_ref_sim = ZombieGame(num_agents=1000, num_steps=3)
     game.run_simulation()
 
