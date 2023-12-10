@@ -38,7 +38,7 @@ class Agent:
         return 5
 
     def update(self, m_ref_sim):
-        if self.state == AgentState.DEAD: 
+        if self.state == AgentState.DEAD:
             return
 
         if self.agent_type is None or not isinstance(self.agent_type, str):
@@ -66,7 +66,7 @@ class Human(Agent):
         super().__init__(AgentType.HUMAN, energy_range)
 
     def update(self, all_agents):
-        if self.energy <= 0 and self.state != AgentState.DEAD:
+        if self.energy <= 0:
             self.state = AgentState.DEAD
 
     def bitten(self, zombie):
@@ -81,7 +81,7 @@ class Zombie(Agent):
         self.m_ref_sim = None
 
     def update(self, m_ref_sim):
-        self.m_ref_sim = m_ref_sim 
+        self.m_ref_sim = m_ref_sim
 
         if self.energy <= 0 and self.state != AgentState.DEAD:
             self.state = AgentState.DEAD
@@ -112,20 +112,33 @@ class Zombie(Agent):
 class Doctor(Agent):
     def __init__(self, energy_range=(0, 100)):
         super().__init__(AgentType.DOCTOR, energy_range)
+        self.m_ref_sim = None
 
     def update(self, m_ref_sim):
-        if self.state == AgentState.INFECTED:
-            if random.random() < 0.4:
-                self.state = AgentState.ALIVE
-                self.energy -= 30
-        elif self.state == AgentState.ALIVE:
-            infected_neighbors = [neighbor for neighbor in m_ref_sim.all_agents if neighbor.agent_type == AgentType.HUMAN and neighbor.state == AgentState.INFECTED]
-            for infected_neighbor in infected_neighbors:
-                if random.random() < 0.9:  
-                    infected_neighbor.state = AgentState.ALIVE
-                    self.energy -= 5
-        elif self.energy <= 0 and self.state != AgentState.DEAD:
-            self.state = AgentState.DEAD
+        self.m_ref_sim = m_ref_sim
+        neighbors = self._select_neighbors({AgentType.HUMAN, AgentState.INFECTED})
+        for neighbor in neighbors:
+            if self.state == AgentState.INFECTED:
+                if random.random() < 0.4:
+                    self.state = AgentState.ALIVE
+                    self.energy += 10
+            elif self.state == AgentState.ALIVE:
+                infected_neighbors = [neighbor for neighbor in m_ref_sim.all_agents if neighbor.agent_type == AgentType.HUMAN and neighbor.state == AgentState.INFECTED]
+                for infected_neighbor in infected_neighbors:
+                    if random.random() < 0.9:
+                        infected_neighbor.state = AgentState.ALIVE
+                        self.energy += 5
+            elif self.energy <= 0 and self.state != AgentState.DEAD:
+                self.state = AgentState.DEAD
+
+    def _select_neighbors(self, agent_types):
+        all_agents = [agent for agent in self.m_ref_sim.all_agents if agent.state == AgentState.ALIVE]
+        num_neig = self._get_num_neig()
+        l_neig_idx = np.random.choice(list(range(len(all_agents))), size=num_neig)
+        l_neig = [all_agents[idx] for idx in l_neig_idx]
+        np.random.shuffle(l_neig)
+        selected_neighbors = [neighbor for neighbor in l_neig if neighbor.agent_type in agent_types]
+        return selected_neighbors
 
 
 # Create a simulation environment
