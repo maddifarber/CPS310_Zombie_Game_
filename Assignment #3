@@ -1,3 +1,4 @@
+
 import random
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -5,7 +6,7 @@ import numpy as np
 from multiprocessing import Process, Queue
 import psycopg2
 
-# Database configuration
+# database configuration
 db_config = {
     'host': 'localhost',
     'port': '5432',
@@ -14,14 +15,15 @@ db_config = {
     'password': 'Rhysand#1'
 }
 
-# Define agent states
+
+# define agent states
 class AgentState:
     ALIVE = "Alive"
     INFECTED = "Infected"
     DEAD = "Dead"
 
 
-# Define agent types
+# define agent types
 class AgentType:
     HUMAN = "Human"
     ZOMBIE = "Zombie"
@@ -29,7 +31,7 @@ class AgentType:
     DEAD = "Dead"
 
 
-# Define the classes
+# define the classes
 class Agent:
     id_counter = 0
 
@@ -38,13 +40,14 @@ class Agent:
         Agent.id_counter += 1
         self.agent_type = agent_type
         self.energy = random.randint(energy_range[0], energy_range[1])
-        self.state = AgentState.ALIVE  # Start as ALIVE by default
+        self.state = AgentState.ALIVE
         self.neighbors = []
 
     def __str__(self):
         return f"{self.agent_type} (ID: {self.id}, Energy: {self.energy}, State: {self.state})"
 
-    def _get_num_neig(self):
+    # get the number of neighbors for zombies and doctors
+    def _get_num_neighbor(self):
         return 5
 
     def update(self, m_ref_sim):
@@ -54,7 +57,7 @@ class Agent:
         if self.agent_type is None or not isinstance(self.agent_type, str):
             return
 
-        num_neig = self._get_num_neig()
+        num_neig = self._get_num_neighbor()
         l_agents = []
 
         if self.agent_type == AgentType.HUMAN:
@@ -70,7 +73,7 @@ class Agent:
         self.neighbors = l_neig
 
 
-# Define subclasses for each agent type
+# define subclasses for each agent type
 class Human(Agent):
     def __init__(self, energy_range=(90, 100)):
         super().__init__(AgentType.HUMAN, energy_range)
@@ -109,9 +112,10 @@ class Zombie(Agent):
                             self.state = AgentState.DEAD
                         break
 
+    # select the neighbors
     def _select_neighbors(self, agent_types):
         all_agents = [agent for agent in self.m_ref_sim.all_agents if agent.state == AgentState.ALIVE]
-        num_neig = self._get_num_neig()
+        num_neig = self._get_num_neighbor()
         l_neig_idx = np.random.choice(list(range(len(all_agents))), size=num_neig)
         l_neig = [all_agents[idx] for idx in l_neig_idx]
         np.random.shuffle(l_neig)
@@ -124,7 +128,7 @@ class Doctor(Agent):
         super().__init__(AgentType.DOCTOR, energy_range)
         self.m_ref_sim = None
 
-    def _get_num_neig(self):
+    def _get_num_neighbor(self):
         # the number of neighbors for a doctor
         return 5
 
@@ -145,9 +149,10 @@ class Doctor(Agent):
             elif self.energy <= 0 and self.state != AgentState.DEAD:
                 self.state = AgentState.DEAD
 
+    # select the neighbors
     def _select_neighbors(self, agent_types):
         all_agents = [agent for agent in self.m_ref_sim.all_agents if agent.state == AgentState.ALIVE]
-        num_neig = self._get_num_neig()
+        num_neig = self._get_num_neighbor()
         l_neig_idx = np.random.choice(list(range(len(all_agents))), size=num_neig)
         l_neig = [all_agents[idx] for idx in l_neig_idx]
         np.random.shuffle(l_neig)
@@ -155,6 +160,7 @@ class Doctor(Agent):
         return selected_neighbors
 
 
+# broker class for the agent queue
 class Broker(Process):
     def __init__(self, agent_queue, db_config):
         super().__init__()
@@ -194,7 +200,7 @@ class Broker(Process):
 
         self.cached_updates.append(write_request)
 
-        if len(self.cached_updates) >= 10: 
+        if len(self.cached_updates) >= 10:
             self.commit_cached_updates()
 
     def commit_cached_updates(self):
@@ -310,7 +316,7 @@ class ZombieGame:
         self.plot_simulation_results()
 
     def save_simulation_data(self):
-        # Create an empty list to store step-wise data
+        # create an empty list to store step-wise data
         step_data = []
 
         for step in range(self.num_steps):
@@ -318,11 +324,11 @@ class ZombieGame:
             if len(self.agent_statuses) > step:
                 step_data.append([f"Step_{step}"] + self.agent_statuses[step])
 
-        # Create a DataFrame from the list of step data
+        # create a DataFrame from the list of step data
         status_df = pd.DataFrame(step_data,
                                  columns=["Step"] + [f"Agent_{i}" for i in range(len(self.agent_statuses[0]))])
 
-        # Save the DataFrame to a CSV file
+        # save the DataFrame to a CSV file
         status_df.to_csv("agent_statuses.csv", index=False)
 
     def plot_simulation_results(self):
@@ -350,13 +356,13 @@ if __name__ == "__main__":
     for broker in brokers:
         broker.start()
 
-    # Create the regular simulation environment
+    # create the regular simulation
     num_agents_param = 1000
     num_steps_param = 3
     game = ZombieGame(num_agents_param, num_steps_param)
     game.run_simulation()
 
-    # Stop the brokers from continuing
+    # stop the brokers from continuing
     for broker in brokers:
         broker.terminate()
         broker.join()
