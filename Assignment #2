@@ -6,14 +6,14 @@ import numpy as np
 from multiprocessing import Process, Queue
 
 
-# Define agent states
+# define agent states
 class AgentState:
     ALIVE = "Alive"
     INFECTED = "Infected"
     DEAD = "Dead"
 
 
-# Define agent types
+# define agent types
 class AgentType:
     HUMAN = "Human"
     ZOMBIE = "Zombie"
@@ -21,7 +21,7 @@ class AgentType:
     DEAD = "Dead"
 
 
-# Define the Agent class with inheritance
+# define the Agent class
 class Agent:
     id_counter = 0
 
@@ -62,7 +62,7 @@ class Agent:
         self.neighbors = l_neig
 
 
-# Define subclasses for each agent type
+# define subclasses
 class Human(Agent):
     def __init__(self, energy_range=(90, 100)):
         super().__init__(AgentType.HUMAN, energy_range)
@@ -117,7 +117,7 @@ class Doctor(Agent):
         self.m_ref_sim = None
 
     def _get_num_neig(self):
-        # Define the number of neighbors for a doctor
+        # define the number of neighbors for doctor
         return 5
 
     def update(self, m_ref_sim):
@@ -162,7 +162,6 @@ class Broker(Process):
                     self.process_write_request(write_request)
 
     def process_write_request(self, write_request):
-        # Implement logic to process the write request and update the core data structure
         agent_id, agent_status = write_request
         print(f"Writing to core data structure: Agent {agent_id}, Status: {agent_status}")
 
@@ -176,7 +175,7 @@ class Broker(Process):
         self.is_paused = False
 
 
-# Create a simulation environment
+# create the simulation
 class ZombieGame:
 
     def __init__(self, num_agents, num_steps, energy_range=(0, 100)):
@@ -262,18 +261,18 @@ class ZombieGame:
         self.plot_simulation_results()
 
     def save_simulation_data(self):
-        # Create an empty list to store step-wise data
+        # create an empty list to store step-wise data
         step_data = []
 
         for step in range(self.num_steps):
-            # Each step contains a list of agent statuses
+            # each step contains a list of agent statuses
             step_data.append([f"Step_{step}"] + self.agent_statuses[step])
 
-        # Create a DataFrame from the list of step data
+        # create a dataframe from the list of step data
         status_df = pd.DataFrame(step_data,
                                  columns=["Step"] + [f"Agent_{i}" for i in range(len(self.agent_statuses[0]))])
 
-        # Save the DataFrame to a CSV file
+        # Save the dataframe to a CSV file
         status_df.to_csv("agent_statuses.csv", index=False)
 
     def plot_simulation_results(self):
@@ -301,13 +300,13 @@ if __name__ == "__main__":
     for broker in brokers:
         broker.start()
 
-    # Create the regular simulation environment
+    # create the simulation
     num_agents_param = 1000
     num_steps_param = 3
     game = ZombieGame(num_agents_param, num_steps_param)
     game.run_simulation()
 
-    # Stop the brokers from continuing
+    # stop the broker process
     for broker in brokers:
         broker.terminate()
         broker.join()
